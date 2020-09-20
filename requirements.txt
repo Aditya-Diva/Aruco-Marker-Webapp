@@ -1,0 +1,4 @@
+# For UI
+flask==1.1.2
+# For Webcam feed
+opencv-python
