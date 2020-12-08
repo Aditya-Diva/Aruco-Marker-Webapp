@@ -1,4 +1,11 @@
 # For UI
 flask==1.1.2
+flask-socketio
+
 # For Webcam feed
-opencv-python
+# opencv-python
+
+# For TCP communication
+ezpysocket>=0.0.3
+gevent==20.9.0
+gevent-websocket==0.10.1
