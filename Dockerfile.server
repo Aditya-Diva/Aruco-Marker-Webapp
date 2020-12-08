@@ -1,0 +1,18 @@
+FROM opencvcourses/opencv-docker:latest
+
+RUN adduser --disabled-password --gecos '' user
+RUN usermod -aG video user
+
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
+RUN apt-get update &&  apt-get install -y libgl1-mesa-glx
+COPY --chown=user . /home/aruco-webapp/
+
+COPY server/ezcppsocket/ /home/aruco-webapp/server/ezcppsocket/
+WORKDIR /home/aruco-webapp/server/ezcppsocket/
+RUN ./link_shared_lib.sh
+
+RUN pip3 install -r /home/aruco-webapp/requirements.txt
+
+WORKDIR /home/aruco-webapp/server
+CMD [".\/compile_and_run.sh"]

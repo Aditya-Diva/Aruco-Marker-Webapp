@@ -1,0 +1,181 @@
+
+{% extends "base_layout.html" %}
+
+{% block title %}
+        <title> Aruco Marker Webapp </title>
+{% endblock title %}
+
+{% block body %}
+
+        <div class="text-center">
+
+                <h1>Aruco Marker Webapp</h1>
+                
+                <!-- <div id="content">
+                    The content is here
+                </div> -->
+        
+                <p>
+                    <button type="button" id="stream_state_button" onclick="buttonClicked()"> {{stream_state_button_content}} </button>
+                </p>
+        
+                <!-- Webcam frame -->
+                <p>
+                    <img id="myimg" src=""/>
+                </p>
+        
+                <!-- Here's the graph object -->
+                <div class="h-50 container">
+                    <canvas id="canvas"></canvas>
+                </div>
+                
+        </div>
+
+        <!-- Load socket io -->
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+        
+        <!-- For dependencies for chart -->
+        <!--suppress JSUnresolvedLibraryURL -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+        <!--suppress JSUnresolvedLibraryURL -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+
+        <!-- Function to update view when image file is uploaded -->
+        <script type="text/javascript" charset="utf-8">
+    
+            var socket = io(); // global object
+
+            // socket events
+            socket.on('connect', function() {
+                console.log("I'm connected!");
+            });
+
+            socket.on('my response', function(msg) {
+                console.log( msg.data);
+            });
+
+            socket.on('change_content', function(msg){
+                var content = document.getElementById("content");
+                content.innerHTML = msg.data;
+            });
+
+
+            // Function Definitions
+            var enable_button = function(ele) {
+                $(ele).removeAttr("disabled");
+            }
+
+            function buttonClicked(){
+                console.log("Button Clicked");
+
+                var button = document.getElementById("stream_state_button");
+
+                // button.innerHTML = (button.innerHTML === "Play") ? "Pause" : "Play";
+
+                button.disabled = true
+                setTimeout(  function(){ enable_button(button) }, 750);
+
+                socket.emit('toggle_stream_state');
+            };
+
+            // Update webcam frame
+            socket.on('update_cam_frame', function(msg){
+                console.log("Updating frame request...");
+                var img = document.getElementById("myimg");
+                img.src = msg.image;
+            });
+
+            // Update stream_state_button
+            socket.on('update_stream_state_button_content', function(msg){
+                console.log("Updating stream state button content...");
+                var button = document.getElementById("stream_state_button");
+                button.innerHTML = msg.content;
+            });
+
+            // Graph part 
+            // Set the configuration for graph when document starts (initialization)
+            $(document).ready(function () {
+                const config = {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: "x-axis", // Label for this data set
+                            backgroundColor: 'rgb(0,0,0)', // Colour of data points
+                            borderColor: 'rgb(255, 99, 132)', // Colour of line connecting data points
+                            data: [], // Actual data to plot
+                            fill: false, // fills the bottom of the plot if need be
+                        },
+                        {
+                            label: "y-axis", // Label for this data set
+                            backgroundColor: 'rgb(0,0,0)', // Colour of data points
+                            borderColor: 'rgb(99, 255, 132)', // Colour of line connecting data points
+                            data: [], // Actual data to plot
+                            fill: false, // fills the bottom of the plot if need be
+                        },
+                        {
+                            label: "z-axis", // Label for this data set
+                            backgroundColor: 'rgb(0,0,0)', // Colour of data points
+                            borderColor: 'rgb(132, 99, 255)', // Colour of line connecting data points
+                            data: [], // Actual data to plot
+                            fill: false, // fills the bottom of the plot if need be
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        title: {
+                            display: true,
+                            text: 'Creating Real-Time Charts with Flask'
+                        },
+                        tooltips: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        hover: {
+                            mode: 'nearest',
+                            intersect: true
+                        },
+                        scales: {
+                            xAxes: [{
+                                display: true,
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Time'
+                                }
+                            }],
+                            yAxes: [{
+                                display: true,
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Value'
+                                }
+                            }]
+                        }
+                    }
+                };
+
+                const context = document.getElementById('canvas').getContext('2d');
+
+                const lineChart = new Chart(context, config);
+
+                const source = new EventSource("/chart-data");
+
+                source.onmessage = function (event) {
+                    const data = JSON.parse(event.data);
+                    if (config.data.labels.length === 20) {
+                        config.data.labels.shift();
+                        config.data.datasets[0].data.shift();
+                        config.data.datasets[1].data.shift();
+                        config.data.datasets[2].data.shift();
+                    }
+                    config.data.labels.push(data.time);
+                    config.data.datasets[0].data.push(data.valuex);
+                    config.data.datasets[1].data.push(data.valuey);
+                    config.data.datasets[2].data.push(data.valuez);
+                    lineChart.update();
+                }
+            });
+
+        </script>
+
+{% endblock body %}
